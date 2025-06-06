@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dave Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dave Chatbot</h1>
+        </div>
+
+        <div id="auth-section" class="auth-section">
+            <h2 id="auth-title">Welcome! Please log in or register.</h2>
+            <form id="auth-form">
+                <div class="input-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="input-group" id="confirm-password-group">
+                    <label for="confirm-password">Confirm Password:</label>
+                    <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password">
+                </div>
+                <button type="submit" id="auth-button">Login</button>
+                <p id="auth-message" class="message"></p>
+                <div class="toggle-auth">
+                    <a href="#" id="toggle-auth-link">Don't have an account? Register</a>
+                </div>
+            </form>
+        </div>
+
+        <div id="chat-section" class="chat-section">
+            <div class="chat-box" id="chat-box">
+                </div>
+            <form id="chat-form" class="chat-input">
+                <input type="text" id="user-input" placeholder="Type your message...">
+                <button type="submit">Send</button>
+            </form>
+            <button id="logout-button" class="logout-button">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        const authSection = document.getElementById('auth-section');
+        const chatSection = document.getElementById('chat-section');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordGroup = document.getElementById('confirm-password-group');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const authButton = document.getElementById('auth-button');
+        const authMessage = document.getElementById('auth-message');
+        const toggleAuthLink = document.getElementById('toggle-auth-link');
+        const chatBox = document.getElementById('chat-box');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const logoutButton = document.getElementById('logout-button');
+
+        let isRegisterMode = false; // Flag to track current mode
+
+        // --- NEW: Markdown Parsing Function (MOVED TO TOP) ---
+        function parseBotMessage(text) {
+            // 1. Escape HTML characters first to prevent XSS (Cross-Site Scripting)
+            let safeText = text.replace(/&/g, '&amp;')
+                               .replace(/</g, '&lt;')
+                               .replace(/>/g, '&gt;')
+                               .replace(/"/g, '&quot;')
+                               .replace(/'/g, '&#039;');
+
+            // 2. Convert bold markdown (e.g., **text**) to HTML <strong> tags
+            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // For *italic* (can be interpreted as emphasis)
+            safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // 3. Convert newlines to HTML <br> tags for line breaks
+            safeText = safeText.replace(/\n/g, '<br>');
+
+            return safeText;
+        }
+        // --- END NEW: Markdown Parsing Function ---
+
+        // Function to display the correct section (auth or chat)
+        function showSection(section) {
+            authSection.style.display = 'none';
+            chatSection.style.display = 'none';
+            if (section === 'auth') {
+                authSection.style.display = 'block'; // Or 'flex' depending on your CSS
+            } else if (section === 'chat') {
+                chatSection.style.display = 'flex'; // Use flex for chat-section
+            }
+        }
+
+        // --- Authentication Functions ---
+        async function handleAuthResponse(response, result, isRegisterAttempt) {
+            if (response.ok) {
+                authMessage.textContent = result.message;
+                authMessage.style.color = 'green';
+                usernameInput.value = ''; // Clear fields on success
+                passwordInput.value = '';
+                confirmPasswordInput.value = '';
+
+                if (isRegisterAttempt) {
+                    // After successful registration, switch to login mode
+                    isRegisterMode = false;
+                    authButton.textContent = 'Login';
+                    toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                    confirmPasswordGroup.style.display = 'none'; // Ensure it's hidden
+                    authTitle.textContent = 'Registration successful! Please log in.';
+                    passwordInput.setAttribute('autocomplete', 'current-password');
+                    setTimeout(() => {
+                        authMessage.textContent = '';
+                    }, 3000); // Clear message after 3 seconds
+                } else {
+                    // After successful login, transition to chat
+                    setTimeout(() => {
+                        showSection('chat'); // Show chat section on successful auth
+                        chatBox.innerHTML = ''; // Clear previous messages
+                        addMessage('bot', `Hi there! I'm Dave. How can I help you today?`); // Initial bot greeting
+                    }, 500); // Short delay for message to show
+                }
+            } else {
+                authMessage.textContent = result.error || 'Authentication failed.';
+                authMessage.style.color = 'red';
+            }
+        }
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authMessage.textContent = ''; // Clear previous messages
+
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            let endpoint = '';
+            let isRegisterAttempt = false;
+
+            if (isRegisterMode) {
+                isRegisterAttempt = true;
+                const confirmPassword = confirmPasswordInput.value;
+                if (password !== confirmPassword) {
+                    authMessage.textContent = 'Passwords do not match.';
+                    authMessage.style.color = 'red';
+                    return;
+                }
+                endpoint = '/register';
+            } else {
+                endpoint = '/login';
+            }
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const result = await response.json();
+                await handleAuthResponse(response, result, isRegisterAttempt);
+
+            } catch (error) {
+                console.error('Authentication Error:', error);
+                authMessage.textContent = 'An error occurred. Please try again.';
+                authMessage.style.color = 'red';
+            }
+        });
+
+        toggleAuthLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isRegisterMode = !isRegisterMode;
+            authMessage.textContent = ''; // Clear messages
+            passwordInput.value = ''; // Clear password fields on mode switch
+            confirmPasswordInput.value = '';
+
+            if (isRegisterMode) {
+                authButton.textContent = 'Register';
+                toggleAuthLink.textContent = 'Already have an account? Login';
+                confirmPasswordGroup.style.display = 'block';
+                authTitle.textContent = 'Create Your Account';
+                passwordInput.setAttribute('autocomplete', 'new-password');
+                confirmPasswordInput.setAttribute('autocomplete', 'new-password');
+            } else {
+                authButton.textContent = 'Login';
+                toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                confirmPasswordGroup.style.display = 'none';
+                confirmPasswordInput.value = ''; // Clear confirm password field
+                authTitle.textContent = 'Welcome! Please log in or register.';
+                passwordInput.setAttribute('autocomplete', 'current-password');
+            }
+        });
+
+        // --- Chat Functions ---
+        function addMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+
+            // UPDATED: Use innerHTML and parseBotMessage for rich text rendering
+            messageElement.innerHTML = parseBotMessage(message);
+
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage('user', message);
+                userInput.value = ''; // Clear input
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message }),
+                    });
+
+                    if (response.status === 401) { // Unauthorized, session expired
+                        alert('Your session has expired. Please log in again.');
+                        showSection('auth'); // Show auth section
+                        return;
+                    }
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        addMessage('bot', result.response);
+                    } else {
+                        addMessage('bot', result.error || 'Oops, something went wrong!');
+                    }
+                } catch (error) {
+                    console.error('Chat Error:', error);
+                    addMessage('bot', 'Failed to connect to the chatbot. Please try again.');
+                }
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    alert('Logged out successfully.');
+                    showSection('auth'); // Show auth section after logout
+                } else {
+                    const result = await response.json();
+                    alert(result.error || 'Failed to logout.');
+                }
+            } catch (error) {
+                console.error('Logout Error:', error);
+                alert('An error occurred during logout.');
+            }
+        });
+
+        // --- Initial Load Check ---
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/check_login_status');
+                const result = await response.json();
+                if (response.ok && result.logged_in) {
+                    showSection('chat'); // Show chat if already logged in
+                    chatBox.innerHTML = ''; // Clear previous messages
+                    addMessage('bot', `Welcome back, ${result.username}! How can I help you today?`); // Personalized greeting
+                } else {
+                    isRegisterMode = false;
+                    authButton.textContent = 'Login';
+                    toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                    confirmPasswordGroup.style.display = 'none';
+                    authTitle.textContent = 'Welcome! Please log in or register.';
+                    passwordInput.setAttribute('autocomplete', 'current-password');
+
+                    showSection('auth'); // Show login/register form
+                }
+            } catch (error) {
+                console.error('Login Status Check Error:', error);
+                isRegisterMode = false;
+                authButton.textContent = 'Login';
+                toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                confirmPasswordGroup.style.display = 'none';
+                authTitle.textContent = 'Welcome! Please log in or register.';
+                passwordInput.setAttribute('autocomplete', 'current-password');
+
+                showSection('auth'); // Default to auth section on error
+            }
+        }
+
+        // Run this check when the page loads
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
+    </script>
+</body>
+</html>
