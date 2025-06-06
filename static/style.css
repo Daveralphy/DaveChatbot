@@ -194,3 +194,119 @@ body {
 #chat-section {
     display: none; /* Default to none, JS will show if logged in */
 }
+
+/* --- Hamburger Menu Styles --- */
+
+.header {
+    position: relative; /* Needed for positioning hamburger icon relative to header */
+    display: flex;
+    justify-content: space-between; /* Pushes H1 and hamburger to opposite ends */
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #333;
+    color: #fff;
+    border-bottom: 1px solid #444;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.hamburger-icon {
+    width: 30px;
+    height: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    z-index: 1001; /* Ensure it's above other content when visible */
+    margin-left: auto; /* Push it to the right */
+}
+
+.hamburger-icon .bar {
+    width: 100%;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Side Menu */
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: -250px; /* Hidden off-screen initially */
+    width: 250px;
+    height: 100%;
+    background-color: #333;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+    transition: right 0.3s ease-in-out; /* Smooth slide animation */
+    z-index: 1000; /* Ensure it's above other content */
+    padding-top: 60px; /* Space for the close button */
+    display: flex;
+    flex-direction: column;
+}
+
+.side-menu.open {
+    right: 0; /* Slide into view */
+}
+
+.side-menu .close-menu-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px; /* Position close button to the left in menu */
+    font-size: 2.5em;
+    color: #fff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1; /* For better vertical alignment */
+}
+
+.side-menu .menu-item {
+    padding: 15px 20px;
+    color: #eee;
+    text-decoration: none;
+    border-bottom: 1px solid #444;
+    transition: background-color 0.2s ease;
+}
+
+.side-menu .menu-item:last-child {
+    border-bottom: none;
+}
+
+.side-menu .menu-item:hover {
+    background-color: #555;
+    color: #fff;
+}
+
+/* Adjust main content when menu is open (optional, for visual effect) */
+body.menu-open .container {
+    transform: translateX(-250px); /* Shift main content left */
+}
+
+/* Styles for general page content (used in profile, settings, about pages) */
+.page-content {
+    flex-grow: 1; /* Allows content to expand */
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 20px; /* Space below the header */
+    overflow-y: auto; /* Enable scrolling for content if it overflows */
+    color: #333;
+}
+
+.page-content h2 {
+    color: #007bff;
+    margin-bottom: 15px;
+    font-size: 1.8em;
+}
+
+.page-content p, .page-content ul {
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.page-content ul {
+    list-style: disc inside;
+    padding-left: 20px;
+}

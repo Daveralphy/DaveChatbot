@@ -166,6 +166,25 @@ def chat_endpoint():
         print(f"Error during chat: {e}")
         return jsonify({"error": str(e)}), 500
 
+# --- NEW ROUTES FOR MENU PAGES ---
+@app.route('/profile')
+@login_required # Ensure only logged-in users can access profile
+def profile():
+    # You can pass session['username'] here if you want to display it on the profile page
+    return render_template('profile.html', username=session.get('username'))
+
+@app.route('/settings')
+@login_required # Ensure only logged-in users can access settings
+def settings():
+    return render_template('settings.html')
+
+@app.route('/about')
+@login_required # Ensure only logged-in users can access about
+def about():
+    return render_template('about.html')
+# --- END NEW ROUTES ---
+
+
 if __name__ == '__main__':
     # Create database tables before running the app for the first time
     with app.app_context():

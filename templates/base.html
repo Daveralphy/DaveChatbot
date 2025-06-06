@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dave Chatbot{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_head %}{% endblock %} {# Placeholder for extra head content specific to a page #}
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{% block header_title %}Dave Chatbot{% endblock %}</h1>
+            <div id="hamburger-icon" class="hamburger-icon">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+        </div>
+
+        {# This is where the unique content of each page will go #}
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="side-menu" class="side-menu">
+        <button id="close-menu-btn" class="close-menu-btn">&times;</button>
+        <a href="/profile" class="menu-item">User Profile</a>
+        <a href="/settings" class="menu-item">Settings</a>
+        <a href="/about" class="menu-item">About Dave</a>
+        <a href="#" id="menu-logout-link" class="menu-item">Logout</a> {# New Logout link in menu #}
+    </div>
+
+    <script>
+        // --- Common JavaScript Elements and Functions (now in base.html) ---
+        const hamburgerIcon = document.getElementById('hamburger-icon');
+        const sideMenu = document.getElementById('side-menu');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const menuLogoutLink = document.getElementById('menu-logout-link');
+
+        // This function will be defined here, but `authSection` and `chatSection`
+        // will only exist on `index.html`. We'll handle null checks.
+        function showSection(section) {
+            const authSection = document.getElementById('auth-section');
+            const chatSection = document.getElementById('chat-section');
+
+            if (authSection) authSection.style.display = 'none';
+            if (chatSection) chatSection.style.display = 'none';
+
+            if (section === 'auth') {
+                if (authSection) authSection.style.display = 'block';
+            } else if (section === 'chat') {
+                if (chatSection) chatSection.style.display = 'flex';
+            }
+        }
+
+        // Parse bot message (moved here as it's common)
+        function parseBotMessage(text) {
+            let safeText = text.replace(/&/g, '&amp;')
+                               .replace(/</g, '&lt;')
+                               .replace(/>/g, '&gt;')
+                               .replace(/"/g, '&#039;');
+            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            safeText = safeText.replace(/\n/g, '<br>');
+            return safeText;
+        }
+
+        // Logout function for the menu item
+        if (menuLogoutLink) {
+            menuLogoutLink.addEventListener('click', async (e) => {
+                e.preventDefault(); // Prevent default link behavior
+                try {
+                    const response = await fetch('/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (response.ok) {
+                        alert('Logged out successfully.');
+                        window.location.href = '/'; // Redirect to home page (which will show auth)
+                    } else {
+                        const result = await response.json();
+                        alert(result.error || 'Failed to logout.');
+                    }
+                } catch (error) {
+                    console.error('Logout Error:', error);
+                    alert('An error occurred during logout.');
+                }
+            });
+        }
+
+        // checkLoginStatus (moved here as it's common)
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/check_login_status');
+                const result = await response.json();
+
+                if (response.ok && result.logged_in) {
+                    hamburgerIcon.style.display = 'flex';
+                    sideMenu.style.display = 'flex';
+
+                    // If on the main chat page, adjust its sections
+                    if (window.location.pathname === '/') {
+                        showSection('chat');
+                        const chatBox = document.getElementById('chat-box');
+                        // Clear chat box only if it's the chat page and there's a chatBox element
+                        if (chatBox) chatBox.innerHTML = '';
+                        // Initial greeting will be handled by index.html's own DOMContentLoaded logic
+                    }
+                } else {
+                    hamburgerIcon.style.display = 'none';
+                    sideMenu.style.display = 'none';
+
+                    // If on the main chat page, show auth section and reset its state
+                    if (window.location.pathname === '/') {
+                        showSection('auth');
+                        const authButton = document.getElementById('auth-button');
+                        const toggleAuthLink = document.getElementById('toggle-auth-link');
+                        const confirmPasswordGroup = document.getElementById('confirm-password-group');
+                        const authTitle = document.getElementById('auth-title');
+                        const passwordInput = document.getElementById('password');
+
+                        // Reset auth form state for login on initial load if not logged in
+                        let isRegisterMode = false; // Local to this scope
+                        if (authButton) authButton.textContent = 'Login';
+                        if (toggleAuthLink) toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                        if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
+                        if (authTitle) authTitle.textContent = 'Welcome! Please log in or register.';
+                        if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+                    }
+                    // For other pages (profile, settings), they just won't show the menu
+                }
+            } catch (error) {
+                console.error('Login Status Check Error:', error);
+                hamburgerIcon.style.display = 'none';
+                sideMenu.style.display = 'none';
+                // Similar error handling for main page
+                if (window.location.pathname === '/') {
+                    showSection('auth');
+                    const authButton = document.getElementById('auth-button');
+                    const toggleAuthLink = document.getElementById('toggle-auth-link');
+                    const confirmPasswordGroup = document.getElementById('confirm-password-group');
+                    const authTitle = document.getElementById('auth-title');
+                    const passwordInput = document.getElementById('password');
+
+                    let isRegisterMode = false;
+                    if (authButton) authButton.textContent = 'Login';
+                    if (toggleAuthLink) toggleAuthLink.textContent = 'Don\'t have an account? Register';
+                    if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
+                    if (authTitle) authTitle.textContent = 'Welcome! Please log in or register.';
+                    if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+                }
+            }
+        }
+
+        // Hamburger Menu Logic (now in base.html)
+        hamburgerIcon.addEventListener('click', () => {
+            sideMenu.classList.add('open');
+        });
+
+        closeMenuBtn.addEventListener('click', () => {
+            sideMenu.classList.remove('open');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (sideMenu.classList.contains('open') &&
+                !sideMenu.contains(event.target) &&
+                !hamburgerIcon.contains(event.target)) {
+                sideMenu.classList.remove('open');
+            }
+        });
+
+        // Initial DOMContentLoaded event listener (common across all pages)
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus(); // This will handle initial menu visibility based on login status
+        });
+
+        // --- END Common JavaScript ---
+
+        // {# Placeholder for extra JavaScript specific to a page #}
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

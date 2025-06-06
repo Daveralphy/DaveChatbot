@@ -1,52 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dave Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Dave Chatbot</h1>
-        </div>
+{% extends 'base.html' %}
 
-        <div id="auth-section" class="auth-section">
-            <h2 id="auth-title">Welcome! Please log in or register.</h2>
-            <form id="auth-form">
-                <div class="input-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
-                </div>
-                <div class="input-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
-                </div>
-                <div class="input-group" id="confirm-password-group">
-                    <label for="confirm-password">Confirm Password:</label>
-                    <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password">
-                </div>
-                <button type="submit" id="auth-button">Login</button>
-                <p id="auth-message" class="message"></p>
-                <div class="toggle-auth">
-                    <a href="#" id="toggle-auth-link">Don't have an account? Register</a>
-                </div>
-            </form>
-        </div>
+{% block title %}Dave Chatbot - Home{% endblock %}
 
-        <div id="chat-section" class="chat-section">
-            <div class="chat-box" id="chat-box">
-                </div>
-            <form id="chat-form" class="chat-input">
-                <input type="text" id="user-input" placeholder="Type your message...">
-                <button type="submit">Send</button>
-            </form>
-            <button id="logout-button" class="logout-button">Logout</button>
-        </div>
+{% block content %}
+    {# Your existing auth and chat sections are now within the 'content' block #}
+    <div id="auth-section" class="auth-section">
+        <h2 id="auth-title">Welcome! Please log in or register.</h2>
+        <form id="auth-form">
+            <div class="input-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <div class="input-group" id="confirm-password-group">
+                <label for="confirm-password">Confirm Password:</label>
+                <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password">
+            </div>
+            <button type="submit" id="auth-button">Login</button>
+            <p id="auth-message" class="message"></p>
+            <div class="toggle-auth">
+                <a href="#" id="toggle-auth-link">Don't have an account? Register</a>
+            </div>
+        </form>
     </div>
 
+    <div id="chat-section" class="chat-section">
+        <div class="chat-box" id="chat-box">
+            </div>
+        <form id="chat-form" class="chat-input">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button type="submit">Send</button>
+        </form>
+        <button id="logout-button" class="logout-button">Logout</button>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    {# JavaScript specific to the index (chat) page #}
     <script>
+        // Get elements specific to index.html (auth and chat elements)
         const authSection = document.getElementById('auth-section');
         const chatSection = document.getElementById('chat-section');
         const authForm = document.getElementById('auth-form');
@@ -63,67 +58,37 @@
         const userInput = document.getElementById('user-input');
         const logoutButton = document.getElementById('logout-button');
 
-        let isRegisterMode = false; // Flag to track current mode
+        // isRegisterMode needs to be managed locally or globally if `checkLoginStatus` relied on it
+        // Since it's mainly for `authForm` and `toggleAuthLink`, it can remain in this scope.
+        let isRegisterMode = false;
 
-        // --- NEW: Markdown Parsing Function (MOVED TO TOP) ---
-        function parseBotMessage(text) {
-            // 1. Escape HTML characters first to prevent XSS (Cross-Site Scripting)
-            let safeText = text.replace(/&/g, '&amp;')
-                               .replace(/</g, '&lt;')
-                               .replace(/>/g, '&gt;')
-                               .replace(/"/g, '&quot;')
-                               .replace(/'/g, '&#039;');
-
-            // 2. Convert bold markdown (e.g., **text**) to HTML <strong> tags
-            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // For *italic* (can be interpreted as emphasis)
-            safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-            // 3. Convert newlines to HTML <br> tags for line breaks
-            safeText = safeText.replace(/\n/g, '<br>');
-
-            return safeText;
-        }
-        // --- END NEW: Markdown Parsing Function ---
-
-        // Function to display the correct section (auth or chat)
-        function showSection(section) {
-            authSection.style.display = 'none';
-            chatSection.style.display = 'none';
-            if (section === 'auth') {
-                authSection.style.display = 'block'; // Or 'flex' depending on your CSS
-            } else if (section === 'chat') {
-                chatSection.style.display = 'flex'; // Use flex for chat-section
-            }
-        }
-
-        // --- Authentication Functions ---
+        // Authentication Functions (specific to index.html's auth form)
         async function handleAuthResponse(response, result, isRegisterAttempt) {
             if (response.ok) {
                 authMessage.textContent = result.message;
                 authMessage.style.color = 'green';
-                usernameInput.value = ''; // Clear fields on success
+                usernameInput.value = '';
                 passwordInput.value = '';
                 confirmPasswordInput.value = '';
 
                 if (isRegisterAttempt) {
-                    // After successful registration, switch to login mode
                     isRegisterMode = false;
                     authButton.textContent = 'Login';
                     toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                    confirmPasswordGroup.style.display = 'none'; // Ensure it's hidden
+                    confirmPasswordGroup.style.display = 'none';
                     authTitle.textContent = 'Registration successful! Please log in.';
                     passwordInput.setAttribute('autocomplete', 'current-password');
                     setTimeout(() => {
                         authMessage.textContent = '';
-                    }, 3000); // Clear message after 3 seconds
+                    }, 3000);
                 } else {
-                    // After successful login, transition to chat
                     setTimeout(() => {
-                        showSection('chat'); // Show chat section on successful auth
-                        chatBox.innerHTML = ''; // Clear previous messages
-                        addMessage('bot', `Hi there! I'm Dave. How can I help you today?`); // Initial bot greeting
-                    }, 500); // Short delay for message to show
+                        showSection('chat'); // `showSection` is from base.html
+                        chatBox.innerHTML = '';
+                        addMessage('bot', `Hi there! I'm Dave. How can I help you today?`);
+                        hamburgerIcon.style.display = 'flex'; // `hamburgerIcon` is from base.html
+                        sideMenu.style.display = 'flex';     // `sideMenu` is from base.html
+                    }, 500);
                 }
             } else {
                 authMessage.textContent = result.error || 'Authentication failed.';
@@ -133,7 +98,7 @@
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            authMessage.textContent = ''; // Clear previous messages
+            authMessage.textContent = '';
 
             const username = usernameInput.value;
             const password = passwordInput.value;
@@ -175,8 +140,8 @@
         toggleAuthLink.addEventListener('click', (e) => {
             e.preventDefault();
             isRegisterMode = !isRegisterMode;
-            authMessage.textContent = ''; // Clear messages
-            passwordInput.value = ''; // Clear password fields on mode switch
+            authMessage.textContent = '';
+            passwordInput.value = '';
             confirmPasswordInput.value = '';
 
             if (isRegisterMode) {
@@ -190,22 +155,19 @@
                 authButton.textContent = 'Login';
                 toggleAuthLink.textContent = 'Don\'t have an account? Register';
                 confirmPasswordGroup.style.display = 'none';
-                confirmPasswordInput.value = ''; // Clear confirm password field
+                confirmPasswordInput.value = '';
                 authTitle.textContent = 'Welcome! Please log in or register.';
                 passwordInput.setAttribute('autocomplete', 'current-password');
             }
         });
 
-        // --- Chat Functions ---
+        // Chat Functions (specific to index.html)
         function addMessage(sender, message) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', sender);
-
-            // UPDATED: Use innerHTML and parseBotMessage for rich text rendering
-            messageElement.innerHTML = parseBotMessage(message);
-
+            messageElement.innerHTML = parseBotMessage(message); // `parseBotMessage` is from base.html
             chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         chatForm.addEventListener('submit', async (e) => {
@@ -213,7 +175,7 @@
             const message = userInput.value.trim();
             if (message) {
                 addMessage('user', message);
-                userInput.value = ''; // Clear input
+                userInput.value = '';
 
                 try {
                     const response = await fetch('/chat', {
@@ -224,9 +186,9 @@
                         body: JSON.stringify({ message: message }),
                     });
 
-                    if (response.status === 401) { // Unauthorized, session expired
+                    if (response.status === 401) {
                         alert('Your session has expired. Please log in again.');
-                        showSection('auth'); // Show auth section
+                        showSection('auth'); // `showSection` is from base.html
                         return;
                     }
 
@@ -254,7 +216,10 @@
 
                 if (response.ok) {
                     alert('Logged out successfully.');
-                    showSection('auth'); // Show auth section after logout
+                    showSection('auth'); // `showSection` is from base.html
+                    sideMenu.classList.remove('open'); // `sideMenu` is from base.html
+                    hamburgerIcon.style.display = 'none'; // `hamburgerIcon` is from base.html
+                    sideMenu.style.display = 'none'; // `sideMenu` is from base.html
                 } else {
                     const result = await response.json();
                     alert(result.error || 'Failed to logout.');
@@ -265,40 +230,23 @@
             }
         });
 
-        // --- Initial Load Check ---
-        async function checkLoginStatus() {
+        // Initial greeting on chat page ONLY after DOM is fully loaded AND user is logged in
+        document.addEventListener('DOMContentLoaded', async () => {
+            // checkLoginStatus already called from base.html, it handles general visibility
+            // We need to fetch login status again here to get `result.username`
             try {
                 const response = await fetch('/check_login_status');
                 const result = await response.json();
                 if (response.ok && result.logged_in) {
-                    showSection('chat'); // Show chat if already logged in
-                    chatBox.innerHTML = ''; // Clear previous messages
-                    addMessage('bot', `Welcome back, ${result.username}! How can I help you today?`); // Personalized greeting
-                } else {
-                    isRegisterMode = false;
-                    authButton.textContent = 'Login';
-                    toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                    confirmPasswordGroup.style.display = 'none';
-                    authTitle.textContent = 'Welcome! Please log in or register.';
-                    passwordInput.setAttribute('autocomplete', 'current-password');
-
-                    showSection('auth'); // Show login/register form
+                    // Only add greeting if chatbox is active and empty (to prevent re-adding on soft refresh)
+                    if (chatBox.style.display !== 'none' && chatBox.children.length === 0) {
+                        addMessage('bot', `Welcome back, ${result.username}! How can I help you today?`);
+                    }
                 }
             } catch (error) {
-                console.error('Login Status Check Error:', error);
-                isRegisterMode = false;
-                authButton.textContent = 'Login';
-                toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                confirmPasswordGroup.style.display = 'none';
-                authTitle.textContent = 'Welcome! Please log in or register.';
-                passwordInput.setAttribute('autocomplete', 'current-password');
-
-                showSection('auth'); // Default to auth section on error
+                console.error("Error checking login status for initial greeting:", error);
             }
-        }
+        });
 
-        // Run this check when the page loads
-        document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
-</body>
-</html>
+{% endblock %}

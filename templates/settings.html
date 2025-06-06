@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Dave Chatbot - Settings{% endblock %}
+
+{% block header_title %}Settings{% endblock %} {# Custom header title for this page #}
+
+{% block content %}
+    <div class="page-content">
+        <h2>Settings</h2>
+        <p>Adjust your preferences here.</p>
+        <ul>
+            <li>Notification preferences</li>
+            <li>Theme selection</li>
+            <li>Account privacy</li>
+        </ul>
+        {# Add settings forms and options here #}
+    </div>
+{% endblock %}
+
+{# No extra JS needed for this simple settings page #}
+{% block extra_js %}{% endblock %}
