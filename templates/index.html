@@ -3,7 +3,6 @@
 {% block title %}Dave Chatbot - Home{% endblock %}
 
 {% block content %}
-    {# Your existing auth and chat sections are now within the 'content' block #}
     <div id="auth-section" class="auth-section">
         <h2 id="auth-title">Welcome! Please log in or register.</h2>
         <form id="auth-form">
@@ -34,14 +33,11 @@
             <input type="text" id="user-input" placeholder="Type your message...">
             <button type="submit">Send</button>
         </form>
-        <button id="logout-button" class="logout-button">Logout</button>
     </div>
 {% endblock %}
 
 {% block extra_js %}
-    {# JavaScript specific to the index (chat) page #}
     <script>
-        // Get elements specific to index.html (auth and chat elements)
         const authSection = document.getElementById('auth-section');
         const chatSection = document.getElementById('chat-section');
         const authForm = document.getElementById('auth-form');
@@ -56,38 +52,41 @@
         const chatBox = document.getElementById('chat-box');
         const chatForm = document.getElementById('chat-form');
         const userInput = document.getElementById('user-input');
-        const logoutButton = document.getElementById('logout-button');
 
-        // isRegisterMode needs to be managed locally or globally if `checkLoginStatus` relied on it
-        // Since it's mainly for `authForm` and `toggleAuthLink`, it can remain in this scope.
         let isRegisterMode = false;
 
-        // Authentication Functions (specific to index.html's auth form)
+        function resetAuthFormToLoginMode() {
+            isRegisterMode = false;
+            authButton.textContent = 'Login';
+            toggleAuthLink.textContent = 'Don\'t have an account? Register';
+            if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
+            if (confirmPasswordInput) confirmPasswordInput.value = '';
+            authTitle.textContent = 'Welcome! Please log in or register.';
+            passwordInput.setAttribute('autocomplete', 'current-password');
+            usernameInput.value = '';
+            passwordInput.value = '';
+            authMessage.textContent = '';
+        }
+
         async function handleAuthResponse(response, result, isRegisterAttempt) {
             if (response.ok) {
                 authMessage.textContent = result.message;
                 authMessage.style.color = 'green';
-                usernameInput.value = '';
-                passwordInput.value = '';
-                confirmPasswordInput.value = '';
-
+                
                 if (isRegisterAttempt) {
-                    isRegisterMode = false;
-                    authButton.textContent = 'Login';
-                    toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                    confirmPasswordGroup.style.display = 'none';
+                    resetAuthFormToLoginMode();
                     authTitle.textContent = 'Registration successful! Please log in.';
-                    passwordInput.setAttribute('autocomplete', 'current-password');
                     setTimeout(() => {
                         authMessage.textContent = '';
                     }, 3000);
                 } else {
+                    // Successful login
                     setTimeout(() => {
-                        showSection('chat'); // `showSection` is from base.html
-                        chatBox.innerHTML = '';
-                        addMessage('bot', `Hi there! I'm Dave. How can I help you today?`);
-                        hamburgerIcon.style.display = 'flex'; // `hamburgerIcon` is from base.html
-                        sideMenu.style.display = 'flex';     // `sideMenu` is from base.html
+                        showSection('chat');
+                        // Make hamburger icon and side menu visible
+                        if (hamburgerIcon) hamburgerIcon.style.display = 'flex';
+                        if (sideMenu) sideMenu.style.display = 'flex';
+                        populateChatBoxWithHistoryOrGreeting();
                     }, 500);
                 }
             } else {
@@ -127,7 +126,7 @@
                     body: JSON.stringify({ username, password }),
                 });
 
-                const result = await response.json();
+                const result = await await response.json(); // Await twice, fix from prev bug
                 await handleAuthResponse(response, result, isRegisterAttempt);
 
             } catch (error) {
@@ -152,20 +151,14 @@
                 passwordInput.setAttribute('autocomplete', 'new-password');
                 confirmPasswordInput.setAttribute('autocomplete', 'new-password');
             } else {
-                authButton.textContent = 'Login';
-                toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                confirmPasswordGroup.style.display = 'none';
-                confirmPasswordInput.value = '';
-                authTitle.textContent = 'Welcome! Please log in or register.';
-                passwordInput.setAttribute('autocomplete', 'current-password');
+                resetAuthFormToLoginMode();
             }
         });
 
-        // Chat Functions (specific to index.html)
         function addMessage(sender, message) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', sender);
-            messageElement.innerHTML = parseBotMessage(message); // `parseBotMessage` is from base.html
+            messageElement.innerHTML = parseBotMessage(message);
             chatBox.appendChild(messageElement);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -188,7 +181,7 @@
 
                     if (response.status === 401) {
                         alert('Your session has expired. Please log in again.');
-                        showSection('auth'); // `showSection` is from base.html
+                        window.location.href = '/';
                         return;
                     }
 
@@ -205,47 +198,47 @@
             }
         });
 
-        logoutButton.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    alert('Logged out successfully.');
-                    showSection('auth'); // `showSection` is from base.html
-                    sideMenu.classList.remove('open'); // `sideMenu` is from base.html
-                    hamburgerIcon.style.display = 'none'; // `hamburgerIcon` is from base.html
-                    sideMenu.style.display = 'none'; // `sideMenu` is from base.html
-                } else {
-                    const result = await response.json();
-                    alert(result.error || 'Failed to logout.');
-                }
-            } catch (error) {
-                console.error('Logout Error:', error);
-                alert('An error occurred during logout.');
-            }
-        });
-
-        // Initial greeting on chat page ONLY after DOM is fully loaded AND user is logged in
-        document.addEventListener('DOMContentLoaded', async () => {
-            // checkLoginStatus already called from base.html, it handles general visibility
-            // We need to fetch login status again here to get `result.username`
+        async function populateChatBoxWithHistoryOrGreeting() {
             try {
                 const response = await fetch('/check_login_status');
                 const result = await response.json();
+
                 if (response.ok && result.logged_in) {
-                    // Only add greeting if chatbox is active and empty (to prevent re-adding on soft refresh)
-                    if (chatBox.style.display !== 'none' && chatBox.children.length === 0) {
+                    showSection('chat');
+                    // Ensure hamburger icon and side menu are visible on successful load
+                    if (hamburgerIcon) hamburgerIcon.style.display = 'flex';
+                    if (sideMenu) sideMenu.style.display = 'flex';
+                    
+                    chatBox.innerHTML = ''; // Always clear before populating
+
+                    const chatHistory = result.chat_history;
+
+                    if (chatHistory && chatHistory.length > 0) {
+                        chatHistory.forEach(msg => {
+                            addMessage(msg.role, msg.parts[0]);
+                        });
+                    } else {
                         addMessage('bot', `Welcome back, ${result.username}! How can I help you today?`);
                     }
+                } else {
+                    showSection('auth');
+                    resetAuthFormToLoginMode();
+                    // Ensure hamburger icon and side menu are hidden if not logged in
+                    if (hamburgerIcon) hamburgerIcon.style.display = 'none';
+                    if (sideMenu) sideMenu.style.display = 'none';
                 }
             } catch (error) {
-                console.error("Error checking login status for initial greeting:", error);
+                console.error("Error during initial page load/login status check:", error);
+                showSection('auth');
+                resetAuthFormToLoginMode();
+                // Ensure hamburger icon and side menu are hidden on error
+                if (hamburgerIcon) hamburgerIcon.style.display = 'none';
+                if (sideMenu) sideMenu.style.display = 'none';
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateChatBoxWithHistoryOrGreeting();
         });
 
     </script>

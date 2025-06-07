@@ -9,25 +9,27 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>{% block header_title %}Dave Chatbot{% endblock %}</h1>
-            <div id="hamburger-icon" class="hamburger-icon">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-            </div>
+    <div class="header">
+        <div class="header-left">{% block header_left %}{% endblock %}</div>
+        <h1>{% block header_title %}Dave Chatbot{% endblock %}</h1>
+        <div id="hamburger-icon" class="hamburger-icon"> {# REMOVED: style="display: none;" #}
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
         </div>
-
-        {# This is where the unique content of each page will go #}
-        {% block content %}{% endblock %}
     </div>
+
+    {# This is where the unique content of each page will go #}
+    {% block content %}{% endblock %}
+</div>
 
     <div id="side-menu" class="side-menu">
         <button id="close-menu-btn" class="close-menu-btn">&times;</button>
+        <a href="/new_chat" class="menu-item">New Chat</a> {# NEW CHAT LINK #}
         <a href="/profile" class="menu-item">User Profile</a>
         <a href="/settings" class="menu-item">Settings</a>
         <a href="/about" class="menu-item">About Dave</a>
-        <a href="#" id="menu-logout-link" class="menu-item">Logout</a> {# New Logout link in menu #}
+        <a href="#" id="menu-logout-link" class="menu-item">Logout</a> {# Existing Logout link #}
     </div>
 
     <script>
@@ -98,13 +100,10 @@
                     hamburgerIcon.style.display = 'flex';
                     sideMenu.style.display = 'flex';
 
-                    // If on the main chat page, adjust its sections
+                    // If on the main chat page, `index.html`'s DOMContentLoaded will handle display and greeting
                     if (window.location.pathname === '/') {
-                        showSection('chat');
-                        const chatBox = document.getElementById('chat-box');
-                        // Clear chat box only if it's the chat page and there's a chatBox element
-                        if (chatBox) chatBox.innerHTML = '';
-                        // Initial greeting will be handled by index.html's own DOMContentLoaded logic
+                        showSection('chat'); // Ensure the chat section is visible
+                        // Removed: chatBox.innerHTML = ''; -- This is now handled in index.html
                     }
                 } else {
                     hamburgerIcon.style.display = 'none';
@@ -113,19 +112,7 @@
                     // If on the main chat page, show auth section and reset its state
                     if (window.location.pathname === '/') {
                         showSection('auth');
-                        const authButton = document.getElementById('auth-button');
-                        const toggleAuthLink = document.getElementById('toggle-auth-link');
-                        const confirmPasswordGroup = document.getElementById('confirm-password-group');
-                        const authTitle = document.getElementById('auth-title');
-                        const passwordInput = document.getElementById('password');
-
-                        // Reset auth form state for login on initial load if not logged in
-                        let isRegisterMode = false; // Local to this scope
-                        if (authButton) authButton.textContent = 'Login';
-                        if (toggleAuthLink) toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                        if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
-                        if (authTitle) authTitle.textContent = 'Welcome! Please log in or register.';
-                        if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+                        // Removed: auth form reset logic. This is now handled by index.html's populateChatBoxWithHistoryOrGreeting().
                     }
                     // For other pages (profile, settings), they just won't show the menu
                 }
@@ -133,21 +120,9 @@
                 console.error('Login Status Check Error:', error);
                 hamburgerIcon.style.display = 'none';
                 sideMenu.style.display = 'none';
-                // Similar error handling for main page
+                // Removed: auth form reset logic here too. index.html handles it.
                 if (window.location.pathname === '/') {
                     showSection('auth');
-                    const authButton = document.getElementById('auth-button');
-                    const toggleAuthLink = document.getElementById('toggle-auth-link');
-                    const confirmPasswordGroup = document.getElementById('confirm-password-group');
-                    const authTitle = document.getElementById('auth-title');
-                    const passwordInput = document.getElementById('password');
-
-                    let isRegisterMode = false;
-                    if (authButton) authButton.textContent = 'Login';
-                    if (toggleAuthLink) toggleAuthLink.textContent = 'Don\'t have an account? Register';
-                    if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
-                    if (authTitle) authTitle.textContent = 'Welcome! Please log in or register.';
-                    if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
                 }
             }
         }
@@ -170,8 +145,14 @@
         });
 
         // Initial DOMContentLoaded event listener (common across all pages)
+        // This will be overridden by index.html's own DOMContentLoaded for the chat page.
+        // For other pages (profile, settings, about), this ensures basic login status is checked.
         document.addEventListener('DOMContentLoaded', () => {
-            checkLoginStatus(); // This will handle initial menu visibility based on login status
+             // Only run checkLoginStatus from base.html if it's NOT the index page.
+             // The index page handles its initial state more comprehensively itself.
+            if (window.location.pathname !== '/') {
+                checkLoginStatus(); 
+            }
         });
 
         // --- END Common JavaScript ---

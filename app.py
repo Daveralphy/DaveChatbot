@@ -7,6 +7,7 @@ from functools import wraps
 import json
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import timedelta # <--- ADD THIS IMPORT
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,6 +19,9 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY")
 print(f"DEBUG: Flask secret key being used: {app.secret_key}")
 if not app.secret_key:
     raise ValueError("FLASK_SECRET_KEY environment variable not set. Please add it to your .env file.")
+
+# Set session to be permanent (e.g., lasts for 7 days)
+app.permanent_session_lifetime = timedelta(days=7) # <--- ADD THIS LINE
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
@@ -73,9 +77,14 @@ initial_persona_prompt = [
     }
 ]
 
-full_chat_history = initial_persona_prompt + persona_history
-chat = model.start_chat(history=full_chat_history)
-# --- END Persona Setup ---
+# Helper function to get/initialize chat session history for a user
+def get_gemini_chat_session():
+    # If the user's chat history is not in the session, initialize it
+    if 'user_chat_history' not in session:
+        session['user_chat_history'] = initial_persona_prompt + persona_history
+        print(f"Initialized new chat session for user: {session.get('username', 'Guest')}")
+    
+    return model.start_chat(history=session['user_chat_history'])
 
 
 # --- Authentication Decorator and Routes ---
@@ -121,13 +130,18 @@ def login():
         session['logged_in'] = True
         session['username'] = user.username # Store username in session
         session['user_id'] = user.id # Store user ID in session
-        print(f"User '{username}' logged in.")
+        session.permanent = True # <--- MAKE SESSION PERMANENT ON LOGIN
+        # Initialize chat history for the logged-in user if not already present
+        if 'user_chat_history' not in session:
+            session['user_chat_history'] = initial_persona_prompt + persona_history
+        print(f"User '{username}' logged in. Chat history initialized/loaded.")
         return jsonify({"message": "Login successful", "username": user.username}), 200
     else:
         print(f"Login failed for user '{username}'.")
         session['logged_in'] = False
         session.pop('username', None)
         session.pop('user_id', None)
+        session.pop('user_chat_history', None) # Clear history on failed login
         return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route('/logout', methods=['POST'])
@@ -136,13 +150,29 @@ def logout():
     session.pop('logged_in', None)
     session.pop('username', None)
     session.pop('user_id', None) # Remove user_id from session
-    print(f"User logged out.")
+    session.pop('user_chat_history', None) # Clear user's chat history on logout
+    session.permanent = False # <--- Make session non-permanent on logout
+    print(f"User logged out. Chat history cleared.")
     return jsonify({"message": "Logged out"}), 200
 
 @app.route('/check_login_status', methods=['GET'])
 def check_login_status():
     if 'user_id' in session:
-        return jsonify({"logged_in": True, "username": session['username']}), 200
+        # Ensure chat history is initialized if not already present
+        if 'user_chat_history' not in session:
+            session['user_chat_history'] = initial_persona_prompt + persona_history
+        
+        # Calculate the length of the non-conversational history (persona + persona.json)
+        persona_base_length = len(initial_persona_prompt) + len(persona_history)
+        
+        # Extract only the actual conversation messages (user and model turns)
+        conversation_messages = session['user_chat_history'][persona_base_length:]
+
+        return jsonify({
+            "logged_in": True, 
+            "username": session['username'],
+            "chat_history": conversation_messages # Send the actual conversation history
+        }), 200
     else:
         return jsonify({"logged_in": False}), 401
 
@@ -155,9 +185,16 @@ def chat_endpoint():
             return jsonify({"error": "No message provided"}), 400
 
         print(f"User '{session.get('username', 'Anonymous')}' message: {user_message}")
-
-        response = chat.send_message(user_message)
+        
+        chat_session = get_gemini_chat_session()
+        
+        response = chat_session.send_message(user_message)
         bot_response = response.text
+        
+        session['user_chat_history'].append({"role": "user", "parts": [user_message]})
+        session['user_chat_history'].append({"role": "model", "parts": [bot_response]})
+        session.modified = True # Tell Flask the session data has been modified
+
         print(f"Bot response: {bot_response}")
 
         return jsonify({"response": bot_response})
@@ -166,27 +203,31 @@ def chat_endpoint():
         print(f"Error during chat: {e}")
         return jsonify({"error": str(e)}), 500
 
-# --- NEW ROUTES FOR MENU PAGES ---
+@app.route('/new_chat')
+@login_required
+def new_chat():
+    session.pop('user_chat_history', None) # Clear the current user's chat history
+    session.modified = True # Indicate session modified
+    print(f"User '{session.get('username', 'Anonymous')}' started a new chat.")
+    return redirect(url_for('index'))
+
 @app.route('/profile')
-@login_required # Ensure only logged-in users can access profile
+@login_required
 def profile():
-    # You can pass session['username'] here if you want to display it on the profile page
     return render_template('profile.html', username=session.get('username'))
 
 @app.route('/settings')
-@login_required # Ensure only logged-in users can access settings
+@login_required
 def settings():
     return render_template('settings.html')
 
 @app.route('/about')
-@login_required # Ensure only logged-in users can access about
+@login_required
 def about():
     return render_template('about.html')
-# --- END NEW ROUTES ---
 
 
 if __name__ == '__main__':
-    # Create database tables before running the app for the first time
     with app.app_context():
         db.create_all()
         print("Database tables created (if they didn't exist).")
