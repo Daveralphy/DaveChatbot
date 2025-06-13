@@ -1,48 +1,526 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dave Chatbot - Home</title>
+    <!-- Link to external style.css -->
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="flex flex-col min-h-screen">
+    <div class="app-wrapper">
+        <header class="header">
+            <h1>Dave</h1> <!-- Dave text, now left-aligned via CSS -->
+            <button id="new-chat-btn" class="new-chat-btn">New Chat</button> <!-- New Chat button -->
+            <button id="menu-btn" class="menu-btn"> <!-- Menu button with hamburger icon -->
+                <div class="hamburger-icon">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                Menu
+            </button>
+        </header>
 
-{% block title %}Dave Chatbot - Home{% endblock %}
+        <main class="content-area">
+            <!-- Authentication Section -->
+            <div id="auth-section" class="auth-section card">
+                <h2 id="auth-title">Welcome! Please log in or register.</h2>
+                <form id="auth-form">
+                    <div class="input-group">
+                        <label for="username" id="username-label">Username or Email:</label> <!-- Changed label for clarity -->
+                        <input type="text" id="username" name="username" required autocomplete="username">
+                    </div>
+                    <div class="input-group" id="email-input-group"> <!-- Wrapped email input in a div with ID and set initial display to none -->
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" autocomplete="email"> <!-- Removed 'required' here, will add dynamically -->
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                    </div>
+                    <div class="input-group" id="confirm-password-group">
+                        <label for="confirm-password">Confirm Password:</label>
+                        <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password">
+                    </div>
+                    <button type="submit" id="auth-button" class="btn primary-btn">Login</button>
+                    <p id="auth-message" class="message"></p>
+                    <div class="toggle-auth">
+                        <a href="#" id="toggle-auth-link" class="link-btn">Don't have an account? Register</a>
+                    </div>
+                </form>
+            </div>
 
-{% block content %}
-    <div id="auth-section" class="auth-section">
-        <h2 id="auth-title">Welcome! Please log in or register.</h2>
-        <form id="auth-form">
-            <div class="input-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
+            <!-- Chat Section -->
+            <div id="chat-section" class="chat-section">
+                <div class="chat-box" id="chat-box">
+                    <!-- Bot message example structure with icon -->
+                    <!-- This structure will be dynamically added by JS -->
+                    <!-- <div class="chat-message-row">
+                        <div class="bot-icon-wrapper"><i class="fas fa-comment-dots"></i></div>
+                        <div class="message bot">Hello! I'm Dave, your AI assistant. How can I help you today?</div>
+                    </div> -->
+                </div>
+                <form id="chat-form" class="chat-input-area">
+                    <input type="text" id="user-input" placeholder="Message Dave..." class="user-input-field" autocomplete="off"> <!-- Added autocomplete="off" -->
+                    <button type="submit" class="btn send-btn" title="Send message"><i class="fas fa-paper-plane"></i></button>
+                </form>
+                <p class="disclaimer-text">Dave can make mistakes. Chat with consideration.</p> <!-- Disclaimer text -->
             </div>
-            <div class="input-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
-            </div>
-            <div class="input-group" id="confirm-password-group">
-                <label for="confirm-password">Confirm Password:</label>
-                <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password">
-            </div>
-            <button type="submit" id="auth-button">Login</button>
-            <p id="auth-message" class="message"></p>
-            <div class="toggle-auth">
-                <a href="#" id="toggle-auth-link">Don't have an account? Register</a>
-            </div>
-        </form>
+        </main>
     </div>
 
-    <div id="chat-section" class="chat-section">
-        <div class="chat-box" id="chat-box">
-            </div>
-        <form id="chat-form" class="chat-input">
-            <input type="text" id="user-input" placeholder="Type your message...">
-            <button type="submit">Send</button>
-        </form>
-    </div>
-{% endblock %}
+    <!-- The overlay element is added here -->
+    <div id="overlay" class="overlay"></div>
 
-{% block extra_js %}
+    <!-- Side Menu -->
+    <div id="side-menu" class="side-menu">
+        <button id="close-side-menu-btn" class="close-menu-btn">&times;</button>
+        <!-- Menu items will be dynamically loaded by JavaScript -->
+        <a href="#" id="login-link" class="menu-item"><i class="fas fa-sign-in-alt"></i> Login</a>
+        <a href="#" id="profile-link" class="menu-item"><i class="fas fa-user-circle"></i> User Profile</a>
+        <a href="#" id="settings-link" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+        <a href="#" id="about-link" class="menu-item"><i class="fas fa-info-circle"></i> About Dave</a>
+        <a href="#" id="menu-logout-link" class="menu-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <!-- Modals for Profile, Settings, About, and Login Required -->
+
+    <!-- Login Required Modal -->
+    <div id="login-required-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <div class="modal-icon"><i class="fas fa-lock"></i></div>
+            <h2 class="text-center">Login Required</h2>
+            <p class="login-required-disclaimer">You've reached the limit of <span id="message-limit">5</span> free messages</p>
+            <form id="login-required-form">
+                <div class="input-group">
+                    <label for="login-required-email">Email:</label>
+                    <input type="email" id="login-required-email" name="email" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label for="login-required-password">Password:</label>
+                    <input type="password" id="login-required-password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="flex justify-between items-center text-sm mt-2">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="remember-me" name="remember-me">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" id="forgot-password-link" class="link-btn">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn primary-btn mt-4">Log in</button>
+                <p class="or-separator">Or continue with</p>
+                <div class="login-required-social-options">
+                    <button type="button" class="social-icon-btn" title="Sign in with GitHub"><i class="fab fa-github"></i></button>
+                    <button type="button" class="social-icon-btn" title="Sign in with Twitter"><i class="fab fa-twitter"></i></button>
+                    <button type="button" class="social-icon-btn" title="Sign in with Google"><i class="fab fa-google"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- User Profile Modal -->
+    <div id="profile-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <div class="modal-icon"><i class="fas fa-user"></i></div>
+            <h2 class="text-center">User Profile</h2>
+            <p class="text-center" id="profile-display-name">raphaeldaveal</p>
+            <p class="text-center" id="profile-email">raphaeldaveal@gmail.com</p>
+            <div class="input-group">
+                <label for="profile-display-name-input">Display Name</label>
+                <input type="text" id="profile-display-name-input" value="raphaeldaveal">
+            </div>
+            <div class="input-group">
+                <label for="profile-email-input">Email</label>
+                <input type="email" id="profile-email-input" value="raphaeldaveal@gmail.com">
+            </div>
+            <a href="#" class="link-btn text-center mt-4" id="change-password-link">Click to change password</a>
+            <button class="btn primary-btn mt-4">Update Profile</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h2>Settings</h2>
+            <div class="settings-option">
+                <label for="theme-toggle" class="theme-label">Theme:</label>
+                <div class="toggle-switch-wrapper">
+                    <input type="checkbox" id="theme-toggle" class="toggle-switch-checkbox">
+                    <label for="theme-toggle" class="toggle-switch-label">
+                        <span class="toggle-switch-inner"></span>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-option">
+                <label for="language-select">Language</label>
+                <select id="language-select" class="settings-dropdown">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                </select>
+            </div>
+            <div class="settings-option">
+                <label for="font-size-select">Font Size</label>
+                <select id="font-size-select" class="settings-dropdown">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+            <div class="settings-option">
+                <label for="notifications-toggle">Notifications</label>
+                <div class="toggle-switch-wrapper">
+                    <input type="checkbox" id="notifications-toggle" class="toggle-switch-checkbox" checked title="Enable or disable notifications">
+                    <label for="notifications-toggle" class="toggle-switch-label">
+                        <span class="toggle-switch-inner"></span>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-option">
+                <label for="sound-effects-toggle">Sound Effects</label>
+                <div class="toggle-switch-wrapper">
+                    <input type="checkbox" id="sound-effects-toggle" class="toggle-switch-checkbox">
+                    <label for="sound-effects-toggle" class="toggle-switch-label">
+                        <span class="toggle-switch-inner"></span>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button class="btn primary-btn mt-4">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <div class="modal-icon"><i class="fas fa-comment-dots"></i></div>
+            <h2 class="text-center">Dave v1.0</h2>
+            <p class="text-center">A powerful AI assistant designed to help with your questions and tasks.</p>
+            <ul class="list-none space-y-2 mt-4 text-center">
+                <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Natural language understanding</li>
+                <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Contextual conversations</li>
+                <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Personalized responses</li>
+                <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Continuous learning</li>
+            </ul>
+            <p class="disclaimer-text mt-4">Dave can make mistakes. Chat with consideration.</p>
+            <p class="text-center text-xs text-gray-500 mt-2">&copy; 2023 Dave AI</p>
+            <p class="text-center text-xs text-gray-500">All rights reserved</p>
+        </div>
+    </div>
+
+
     <script>
+        // --- Common JavaScript Elements and Functions ---
+        const newChatBtn = document.getElementById('new-chat-btn'); // New element
+        const menuBtn = document.getElementById('menu-btn'); // Changed from hamburgerIcon
+        const sideMenu = document.getElementById('side-menu');
+        const closeSideMenuBtn = document.getElementById('close-side-menu-btn');
+        const menuLogoutLink = document.getElementById('menu-logout-link');
+        const overlay = document.getElementById('overlay');
+        const body = document.body; // Reference to the body element
+
+        // Modal Elements
+        const loginLink = document.getElementById('login-link'); // New element for guest menu
+        const profileLink = document.getElementById('profile-link');
+        const settingsLink = document.getElementById('settings-link');
+        const aboutLink = document.getElementById('about-link');
+
+        const profileModal = document.getElementById('profile-modal');
+        const settingsModal = document.getElementById('settings-modal');
+        const aboutModal = document.getElementById('about-modal');
+        const loginRequiredModal = document.getElementById('login-required-modal'); // New modal
+
+        // Get close buttons for modals
+        const modalCloseBtns = document.querySelectorAll('.modal-container .modal-close-btn');
+
+        // Placeholder for user data in profile modal
+        const modalProfileUserId = document.getElementById('modal-profile-user-id');
+        const modalProfileUsername = document.getElementById('modal-profile-username');
+        const profileDisplayNameInput = document.getElementById('profile-display-name-input'); // New input
+        const profileEmailInput = document.getElementById('profile-email-input'); // New input
+        const profileDisplayName = document.getElementById('profile-display-name'); // New display span
+        const profileEmail = document.getElementById('profile-email'); // New display span
+
+
+        // Theme Toggle Elements
+        const themeToggle = document.getElementById('theme-toggle');
+
+        // Login Required Modal specific elements
+        const loginRequiredEmailInput = document.getElementById('login-required-email');
+        const loginRequiredPasswordInput = document.getElementById('login-required-password');
+        const loginRequiredForm = document.getElementById('login-required-form');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const messageLimitSpan = document.getElementById('message-limit'); // For "You've reached the limit of 5 free messages"
+
+        // Chat message count for guest users
+        let guestMessageCount = 0;
+        const MAX_GUEST_MESSAGES = 5;
+
+
+        function showSection(section) {
+            const authSection = document.getElementById('auth-section');
+            const chatSection = document.getElementById('chat-section');
+
+            if (authSection) authSection.style.display = 'none';
+            if (chatSection) chatSection.style.display = 'none';
+
+            if (section === 'auth') {
+                if (authSection) authSection.style.display = 'block'; // Changed to block for full-width auth form
+                // Also hide chat-form when showing auth section
+                if (chatForm) chatForm.style.display = 'none';
+                if (document.querySelector('.disclaimer-text')) document.querySelector('.disclaimer-text').style.display = 'none';
+            } else if (section === 'chat') {
+                if (chatSection) chatSection.style.display = 'flex';
+                if (chatForm) chatForm.style.display = 'flex'; // Ensure chat form is visible in chat mode
+                if (document.querySelector('.disclaimer-text')) document.querySelector('.disclaimer-text').style.display = 'block';
+            }
+        }
+
+        function parseBotMessage(text) {
+            let safeText = text.replace(/&/g, '&amp;')
+                               .replace(/</g, '&lt;')
+                               .replace(/>/g, '&gt;')
+                               .replace(/"/g, '&#039;');
+            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            safeText = safeText.replace(/\n/g, '<br>');
+            return safeText;
+        }
+
+        if (menuLogoutLink) {
+            menuLogoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await fetch('/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (response.ok) {
+                        displayMessage('Logged out successfully.', 'success');
+                        // Reset guest message count on logout
+                        guestMessageCount = 0;
+                        window.location.href = '/'; // Redirect to home/login
+                    } else {
+                        const result = await response.json();
+                        displayMessage(result.error || 'Failed to logout.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Logout Error:', error);
+                    displayMessage('An error occurred during logout.', 'error');
+                }
+            });
+        }
+
+        function displayMessage(msg, type = 'info') {
+            const messageBox = document.createElement('div');
+            messageBox.classList.add('custom-message-box', type);
+            messageBox.textContent = msg;
+            document.body.appendChild(messageBox);
+
+            setTimeout(() => {
+                messageBox.remove();
+            }, 3000);
+        }
+
+        /**
+         * Dynamically updates the side menu based on login status.
+         * @param {boolean} loggedIn - True if user is logged in, false otherwise.
+         */
+        function updateSideMenu(loggedIn) {
+            // Hide all menu items first
+            loginLink.style.display = 'none';
+            profileLink.style.display = 'none';
+            menuLogoutLink.style.display = 'none';
+            newChatBtn.style.display = 'none'; // Initially hide new chat button too
+
+            if (loggedIn) {
+                profileLink.style.display = 'flex'; // Show with icon
+                menuLogoutLink.style.display = 'flex'; // Show with icon
+                newChatBtn.style.display = 'block'; // Show New Chat button for logged-in users
+            } else {
+                loginLink.style.display = 'flex'; // Show Login with icon
+                // Settings and About are always visible, no change needed for them here
+            }
+        }
+
+
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/check_login_status');
+                const result = await response.json();
+
+                console.log('checkLoginStatus Result:', result); // DEBUG: Log the result of the login status check
+
+                if (response.ok && result.logged_in) {
+                    // User is logged in
+                    updateSideMenu(true);
+                    if (menuBtn) menuBtn.style.display = 'flex'; // Show menu button
+                    // Populate profile modal fields
+                    if (profileDisplayName) profileDisplayName.textContent = result.username || 'N/A';
+                    if (profileEmail) profileEmail.textContent = result.email || 'N/A'; // Assuming email is returned
+                    if (profileDisplayNameInput) profileDisplayNameInput.value = result.username || '';
+                    if (profileEmailInput) profileEmailInput.value = result.email || '';
+
+                    if (window.location.pathname === '/') {
+                        showSection('chat');
+                    }
+                    console.log('checkLoginStatus: User is logged in and UI updated.'); // DEBUG
+                } else {
+                    // User is not logged in (guest)
+                    updateSideMenu(false);
+                    if (menuBtn) menuBtn.style.display = 'flex'; // Show menu button
+                    if (window.location.pathname === '/') {
+                        showSection('auth');
+                    }
+                    console.log('checkLoginStatus: User is NOT logged in (guest).'); // DEBUG
+                }
+            } catch (error) {
+                console.error('Login Status Check Error:', error);
+                // Fallback for network errors or server issues
+                updateSideMenu(false); // Assume guest
+                if (menuBtn) menuBtn.style.display = 'flex';
+                if (window.location.pathname === '/') {
+                    showSection('auth');
+                }
+                console.error('checkLoginStatus: An error occurred during login status check.'); // DEBUG
+            }
+        }
+
+        // Function to open any modal
+        function openModal(modalElement) {
+            sideMenu.classList.remove('open'); // Close side menu when a modal opens
+            overlay.classList.add('visible'); // Ensure overlay is visible
+            modalElement.classList.add('open'); // Open the specific modal
+            body.classList.add('modal-open'); // Add class to body to indicate modal is open
+        }
+
+        // Function to close any modal
+        function closeModal(modalElement) {
+            modalElement.classList.remove('open');
+            body.classList.remove('modal-open'); // Remove class from body
+
+            // Only hide overlay if no other menu or modal is currently open
+            if (!sideMenu.classList.contains('open') && !profileModal.classList.contains('open') &&
+                !settingsModal.classList.contains('open') && !aboutModal.classList.contains('open') &&
+                !loginRequiredModal.classList.contains('open')) { // Check new modal too
+                overlay.classList.remove('visible');
+            }
+        }
+
+        // Event listeners for side menu toggle
+        if (menuBtn) { // Changed from hamburgerIcon
+            menuBtn.addEventListener('click', () => {
+                sideMenu.classList.add('open');
+                overlay.classList.add('visible');
+            });
+        }
+
+        // Event listener for side menu close button
+        if (closeSideMenuBtn) {
+            closeSideMenuBtn.addEventListener('click', () => {
+                sideMenu.classList.remove('open');
+                // Check if any modal is open before hiding overlay
+                if (!profileModal.classList.contains('open') && !settingsModal.classList.contains('open') && !aboutModal.classList.contains('open') && !loginRequiredModal.classList.contains('open')) {
+                    overlay.classList.remove('visible');
+                }
+            });
+        }
+
+        // Event listeners for opening modals from side menu
+        if (loginLink) loginLink.addEventListener('click', (e) => { e.preventDefault(); openModal(loginRequiredModal); }); // New login link
+        if (profileLink) profileLink.addEventListener('click', (e) => { e.preventDefault(); openModal(profileModal); });
+        if (settingsLink) settingsLink.addEventListener('click', (e) => { e.preventDefault(); openModal(settingsModal); });
+        if (aboutLink) aboutLink.addEventListener('click', (e) => { e.preventDefault(); openModal(aboutModal); });
+
+        // Event listeners for closing modals (via their 'X' button)
+        modalCloseBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const modalToClose = e.target.closest('.modal-container');
+                if (modalToClose) {
+                    closeModal(modalToClose);
+                }
+            });
+        });
+
+        // Universal click handler for overlay to close active elements
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                let closedSomething = false;
+                // Prioritize closing modals
+                if (profileModal.classList.contains('open')) { closeModal(profileModal); closedSomething = true; }
+                if (settingsModal.classList.contains('open')) { closeModal(settingsModal); closedSomething = true; }
+                if (aboutModal.classList.contains('open')) { closeModal(aboutModal); closedSomething = true; }
+                if (loginRequiredModal.classList.contains('open')) { closeModal(loginRequiredModal); closedSomething = true; } // Close new modal
+
+                // If no modal was open, and side menu is open, close side menu
+                if (!closedSomething && sideMenu.classList.contains('open')) {
+                    closeSideMenuBtn.click(); // Uses the existing close side menu logic
+                }
+            });
+        }
+
+        // --- Theme Toggling Logic ---
+        function applyTheme(isDarkMode) {
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+            }
+        }
+
+        function loadThemePreference() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                if (themeToggle) themeToggle.checked = true;
+                applyTheme(true);
+            } else if (savedTheme === 'light') {
+                if (themeToggle) themeToggle.checked = false;
+                applyTheme(false);
+            } else {
+                // Default to system preference if no saved theme
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (themeToggle) themeToggle.checked = prefersDark;
+                applyTheme(prefersDark);
+            }
+        }
+
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                const isDarkMode = themeToggle.checked;
+                applyTheme(isDarkMode);
+                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            });
+        }
+        // --- End Theme Toggling Logic ---
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateChatBoxWithHistoryOrGreeting();
+            loadThemePreference(); // Load theme when the DOM is ready
+            checkLoginStatus(); // Initial check on page load
+            resetAuthFormToLoginMode(); // Ensure auth form starts in login mode
+        });
+
+        // References to auth and chat specific elements
         const authSection = document.getElementById('auth-section');
         const chatSection = document.getElementById('chat-section');
         const authForm = document.getElementById('auth-form');
         const authTitle = document.getElementById('auth-title');
         const usernameInput = document.getElementById('username');
+        const usernameLabel = document.getElementById('username-label'); // New reference to username label
+        const emailInputGroup = document.getElementById('email-input-group'); // Reference to the new email input group
+        const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const confirmPasswordGroup = document.getElementById('confirm-password-group');
         const confirmPasswordInput = document.getElementById('confirm-password');
@@ -57,59 +535,77 @@
 
         function resetAuthFormToLoginMode() {
             isRegisterMode = false;
-            authButton.textContent = 'Login';
-            toggleAuthLink.textContent = 'Don\'t have an account? Register';
+            if (authButton) authButton.textContent = 'Login';
+            if (toggleAuthLink) toggleAuthLink.textContent = 'Don\'t have an account? Register';
             if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
             if (confirmPasswordInput) confirmPasswordInput.value = '';
-            authTitle.textContent = 'Welcome! Please log in or register.';
-            passwordInput.setAttribute('autocomplete', 'current-password');
-            usernameInput.value = '';
-            passwordInput.value = '';
-            authMessage.textContent = '';
+            if (authTitle) authTitle.textContent = 'Welcome! Please log in or register.';
+            if (emailInputGroup) emailInputGroup.style.display = 'none'; // Hide email input group
+            if (emailInput) {
+                emailInput.value = ''; // Clear email input
+                emailInput.removeAttribute('required'); // IMPORTANT: Remove required attribute for login mode
+            }
+            if (usernameLabel) usernameLabel.textContent = 'Username or Email:'; // Set label for login mode
+            if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+            if (authMessage) authMessage.textContent = '';
         }
 
         async function handleAuthResponse(response, result, isRegisterAttempt) {
             if (response.ok) {
-                authMessage.textContent = result.message;
-                authMessage.style.color = 'green';
-                
+                if (authMessage) {
+                    authMessage.textContent = result.message;
+                    authMessage.style.color = 'green';
+                }
+
                 if (isRegisterAttempt) {
                     resetAuthFormToLoginMode();
-                    authTitle.textContent = 'Registration successful! Please log in.';
+                    if (authTitle) authTitle.textContent = 'Registration successful! Please log in.';
                     setTimeout(() => {
-                        authMessage.textContent = '';
+                        if (authMessage) authMessage.textContent = '';
                     }, 3000);
                 } else {
-                    // Successful login
+                    console.log('Login successful on frontend (handleAuthResponse). Attempting to update UI...'); // DEBUG
+                    // Delay showing chat section to allow user to see success message briefly
                     setTimeout(() => {
                         showSection('chat');
-                        // Make hamburger icon and side menu visible
-                        if (hamburgerIcon) hamburgerIcon.style.display = 'flex';
-                        if (sideMenu) sideMenu.style.display = 'flex';
+                        // Show header buttons and update side menu for logged-in user
+                        if (newChatBtn) newChatBtn.style.display = 'block';
+                        if (menuBtn) menuBtn.style.display = 'flex';
+                        updateSideMenu(true);
                         populateChatBoxWithHistoryOrGreeting();
+                        closeModal(loginRequiredModal); // Close the login required modal if open
+                        console.log('UI update triggered after successful login.'); // DEBUG
                     }, 500);
                 }
             } else {
-                authMessage.textContent = result.error || 'Authentication failed.';
-                authMessage.style.color = 'red';
+                if (authMessage) {
+                    authMessage.textContent = result.error || 'Authentication failed.';
+                    authMessage.style.color = 'red';
+                }
+                console.error('Authentication failed (handleAuthResponse):', result.error || 'Unknown error'); // DEBUG
             }
         }
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            authMessage.textContent = '';
+            if (authMessage) authMessage.textContent = '';
 
-            const username = usernameInput.value;
-            const password = passwordInput.value;
+            const username = usernameInput ? usernameInput.value : '';
+            const email = emailInput ? emailInput.value : ''; // Get email
+            const password = passwordInput ? passwordInput.value : '';
             let endpoint = '';
             let isRegisterAttempt = false;
 
             if (isRegisterMode) {
                 isRegisterAttempt = true;
-                const confirmPassword = confirmPasswordInput.value;
+                const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
                 if (password !== confirmPassword) {
-                    authMessage.textContent = 'Passwords do not match.';
-                    authMessage.style.color = 'red';
+                    if (authMessage) {
+                        authMessage.textContent = 'Passwords do not match.';
+                        authMessage.style.color = 'red';
+                    }
                     return;
                 }
                 endpoint = '/register';
@@ -117,58 +613,161 @@
                 endpoint = '/login';
             }
 
+            console.log(`Attempting to send ${isRegisterMode ? 'registration' : 'login'} request to ${endpoint}`); // DEBUG: Log the request type and endpoint
+
             try {
+                const payload = { username, password };
+                if (isRegisterMode) {
+                    payload.email = email; // Include email for registration
+                }
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, password }),
+                    body: JSON.stringify(payload),
                 });
 
-                const result = await await response.json(); // Await twice, fix from prev bug
+                const result = await response.json();
+                console.log('Backend response for authForm submit:', result); // DEBUG: Log backend response
                 await handleAuthResponse(response, result, isRegisterAttempt);
 
             } catch (error) {
-                console.error('Authentication Error:', error);
-                authMessage.textContent = 'An error occurred. Please try again.';
-                authMessage.style.color = 'red';
+                console.error('Authentication Error (authForm submit):', error); // DEBUG
+                if (authMessage) {
+                    authMessage.textContent = 'An error occurred. Please try again.';
+                    authMessage.style.color = 'red';
+                }
             }
         });
+
+        // Handle login from the 'Login Required' modal
+        if (loginRequiredForm) {
+            loginRequiredForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginRequiredEmailInput.value;
+                const password = loginRequiredPasswordInput.value;
+
+                console.log('Attempting to login from Login Required modal.'); // DEBUG
+
+                try {
+                    // Assuming login with email is also possible, or mapping email to username
+                    // For now, let's just use email as username for simplicity on frontend side
+                    // Backend needs to handle actual email-based login if username is different
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username: email, password: password }), // Using email as username for login
+                    });
+
+                    const result = await response.json();
+                    console.log('Backend response for modal login:', result); // DEBUG
+                    if (response.ok) {
+                        displayMessage('Logged in successfully!', 'success');
+                        setTimeout(() => {
+                            closeModal(loginRequiredModal);
+                            showSection('chat');
+                            if (newChatBtn) newChatBtn.style.display = 'block';
+                            if (menuBtn) menuBtn.style.display = 'flex';
+                            updateSideMenu(true);
+                            populateChatBoxWithHistoryOrGreeting();
+                            guestMessageCount = 0; // Reset count on successful login
+                            console.log('UI updated after successful modal login.'); // DEBUG
+                        }, 500);
+                    } else {
+                        displayMessage(result.error || 'Login failed from modal. Invalid credentials.', 'error');
+                        console.error('Modal login failed:', result.error || 'Unknown error'); // DEBUG
+                    }
+                } catch (error) {
+                    console.error('Modal Login Error:', error); // DEBUG
+                    displayMessage('An error occurred during modal login.', 'error');
+                }
+            });
+        }
+
 
         toggleAuthLink.addEventListener('click', (e) => {
             e.preventDefault();
             isRegisterMode = !isRegisterMode;
-            authMessage.textContent = '';
-            passwordInput.value = '';
-            confirmPasswordInput.value = '';
+            if (authMessage) authMessage.textContent = '';
+            if (passwordInput) passwordInput.value = '';
+            if (confirmPasswordInput) confirmPasswordInput.value = '';
 
             if (isRegisterMode) {
-                authButton.textContent = 'Register';
-                toggleAuthLink.textContent = 'Already have an account? Login';
-                confirmPasswordGroup.style.display = 'block';
-                authTitle.textContent = 'Create Your Account';
-                passwordInput.setAttribute('autocomplete', 'new-password');
-                confirmPasswordInput.setAttribute('autocomplete', 'new-password');
+                if (authButton) authButton.textContent = 'Register';
+                if (toggleAuthLink) toggleAuthLink.textContent = 'Already have an account? Login';
+                if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'block';
+                if (authTitle) authTitle.textContent = 'Create Your Account';
+                if (emailInputGroup) emailInputGroup.style.display = 'block'; // Show email input group for registration
+                if (emailInput) {
+                    emailInput.setAttribute('required', 'true'); // IMPORTANT: Add required attribute for registration mode
+                }
+                if (usernameLabel) usernameLabel.textContent = 'Username:'; // Set label for registration mode
+                if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
+                if (confirmPasswordInput) confirmPasswordInput.setAttribute('autocomplete', 'new-password');
+                console.log('Switched to Register mode.'); // DEBUG
             } else {
                 resetAuthFormToLoginMode();
+                console.log('Switched to Login mode.'); // DEBUG
             }
         });
 
         function addMessage(sender, message) {
+            if (!chatBox) return;
+
+            const messageRow = document.createElement('div');
+            messageRow.classList.add('chat-message-row');
+
+            if (sender === 'bot') {
+                const iconWrapper = document.createElement('div');
+                iconWrapper.classList.add('bot-icon-wrapper');
+                iconWrapper.innerHTML = '<i class="fas fa-comment-dots"></i>';
+                messageRow.appendChild(iconWrapper);
+            }
+
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', sender);
             messageElement.innerHTML = parseBotMessage(message);
-            chatBox.appendChild(messageElement);
+            messageRow.appendChild(messageElement);
+
+            chatBox.appendChild(messageRow);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
 
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = userInput.value.trim();
             if (message) {
+                // Check if user is logged in
+                const loginStatusResponse = await fetch('/check_login_status');
+                const loginStatusResult = await loginStatusResponse.json();
+                const loggedIn = loginStatusResult.logged_in;
+
+                console.log('Chat submit: User logged in status:', loggedIn, 'Guest message count:', guestMessageCount); // DEBUG
+
+                if (!loggedIn && guestMessageCount >= MAX_GUEST_MESSAGES) {
+                    openModal(loginRequiredModal);
+                    // Optionally set the email in the login modal if user provided one during registration attempt
+                    if (emailInput && emailInput.value) {
+                         loginRequiredEmailInput.value = emailInput.value;
+                    } else if (usernameInput && usernameInput.value && usernameInput.value.includes('@')) {
+                        loginRequiredEmailInput.value = usernameInput.value;
+                    }
+                    console.log('Guest message limit reached. Opening login modal.'); // DEBUG
+                    return; // Stop message sending if limit reached
+                }
+
                 addMessage('user', message);
                 userInput.value = '';
+
+                // Increment guest message count only if not logged in
+                if (!loggedIn) {
+                    guestMessageCount++;
+                }
 
                 try {
                     const response = await fetch('/chat', {
@@ -180,23 +779,62 @@
                     });
 
                     if (response.status === 401) {
-                        alert('Your session has expired. Please log in again.');
-                        window.location.href = '/';
+                        displayMessage('Your session has expired. Please log in again.', 'error');
+                        // No redirect here, instead open the login modal for guest limit
+                        if (!loggedIn) { // If it's a guest, open login modal
+                            openModal(loginRequiredModal);
+                        } else { // If it was a logged-in user whose session expired, redirect
+                            window.location.href = '/';
+                        }
+                        console.error('Chat session expired or unauthorized.'); // DEBUG
                         return;
                     }
 
                     const result = await response.json();
+                    console.log('Chat API response:', result); // DEBUG
                     if (response.ok) {
                         addMessage('bot', result.response);
                     } else {
                         addMessage('bot', result.error || 'Oops, something went wrong!');
                     }
                 } catch (error) {
-                    console.error('Chat Error:', error);
+                    console.error('Chat Error:', error); // DEBUG
                     addMessage('bot', 'Failed to connect to the chatbot. Please try again.');
                 }
             }
         });
+
+        // Event listener for New Chat button
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log('New Chat button clicked.'); // DEBUG
+                try {
+                    const response = await fetch('/new_chat');
+                    if (response.ok) {
+                        displayMessage('Starting a new chat.', 'info');
+                        // Clear frontend chat history
+                        if (chatBox) chatBox.innerHTML = '';
+                        // Re-populate with greeting for new chat
+                        const loginStatusResponse = await fetch('/check_login_status');
+                        const loginStatusResult = loginStatusResponse.json(); // Don't await here, await later
+                        // Check if loginStatusResult is a Promise, then await
+                        const finalLoginStatusResult = await Promise.resolve(loginStatusResult);
+                        addMessage('bot', `Hello ${finalLoginStatusResult.username || 'there'}! How can I help you today?`);
+                        guestMessageCount = 0; // Reset guest message count for new chat
+                        console.log('New chat initiated successfully.'); // DEBUG
+                    } else {
+                        const result = await response.json();
+                        displayMessage(result.error || 'Failed to start new chat.', 'error');
+                        console.error('Failed to start new chat:', result.error || 'Unknown error'); // DEBUG
+                    }
+                } catch (error) {
+                    console.error('New Chat Error:', error); // DEBUG
+                    displayMessage('An error occurred during new chat initiation.', 'error');
+                }
+            });
+        }
+
 
         async function populateChatBoxWithHistoryOrGreeting() {
             try {
@@ -205,41 +843,58 @@
 
                 if (response.ok && result.logged_in) {
                     showSection('chat');
-                    // Ensure hamburger icon and side menu are visible on successful load
-                    if (hamburgerIcon) hamburgerIcon.style.display = 'flex';
-                    if (sideMenu) sideMenu.style.display = 'flex';
-                    
-                    chatBox.innerHTML = ''; // Always clear before populating
+                    // Ensure New Chat and Menu buttons are visible and side menu updated
+                    if (newChatBtn) newChatBtn.style.display = 'block';
+                    if (menuBtn) menuBtn.style.display = 'flex';
+                    updateSideMenu(true);
+
+                    // Populate profile modal fields
+                    if (modalProfileUserId) modalProfileUserId.textContent = result.user_id || 'N/A';
+                    if (profileDisplayName) profileDisplayName.textContent = result.username || 'N/A';
+                    if (profileEmail) profileEmail.textContent = result.email || 'N/A'; // Assuming email is returned
+                    if (profileDisplayNameInput) profileDisplayNameInput.value = result.username || '';
+                    if (profileEmailInput) profileEmailInput.value = result.email || '';
+
+                    if (chatBox) chatBox.innerHTML = ''; // Clear chat box before populating
 
                     const chatHistory = result.chat_history;
 
                     if (chatHistory && chatHistory.length > 0) {
                         chatHistory.forEach(msg => {
-                            addMessage(msg.role, msg.parts[0]);
+                            if (msg.parts && msg.parts[0]) {
+                                // Map 'model' role to 'bot' for frontend CSS class
+                                addMessage(msg.role === 'model' ? 'bot' : 'user', msg.parts[0]);
+                            }
                         });
+                        console.log('populateChatBoxWithHistoryOrGreeting: Populated chat history for logged-in user. Messages:', chatHistory.length); // DEBUG
                     } else {
                         addMessage('bot', `Welcome back, ${result.username}! How can I help you today?`);
+                        console.log('populateChatBoxWithHistoryOrGreeting: Displayed greeting for logged-in user (no history).'); // DEBUG
                     }
                 } else {
-                    showSection('auth');
-                    resetAuthFormToLoginMode();
-                    // Ensure hamburger icon and side menu are hidden if not logged in
-                    if (hamburgerIcon) hamburgerIcon.style.display = 'none';
-                    if (sideMenu) sideMenu.style.display = 'none';
+                    // Not logged in
+                    showSection('chat'); // Keep showing chat, but manage message count
+                    // Hide New Chat button for guests
+                    if (newChatBtn) newChatBtn.style.display = 'none';
+                    if (menuBtn) menuBtn.style.display = 'flex';
+                    updateSideMenu(false); // Update menu for guest state
+
+                    if (chatBox) chatBox.innerHTML = ''; // Clear chat box
+                    // Initial greeting for guest
+                    addMessage('bot', `Hello! I'm Dave, your AI assistant. You have ${MAX_GUEST_MESSAGES - guestMessageCount} free messages left. How can I help you today?`);
+                    console.log('populateChatBoxWithHistoryOrGreeting: Displayed greeting for guest user.'); // DEBUG
                 }
             } catch (error) {
-                console.error("Error during initial page load/login status check:", error);
-                showSection('auth');
-                resetAuthFormToLoginMode();
-                // Ensure hamburger icon and side menu are hidden on error
-                if (hamburgerIcon) hamburgerIcon.style.display = 'none';
-                if (sideMenu) sideMenu.style.display = 'none';
+                console.error("Error during initial page load/login status check (populateChatBoxWithHistoryOrGreeting):", error); // DEBUG
+                // Fallback to showing chat, but with guest limitations
+                showSection('chat');
+                if (newChatBtn) newChatBtn.style.display = 'none';
+                if (menuBtn) menuBtn.style.display = 'flex';
+                updateSideMenu(false);
+                if (chatBox) chatBox.innerHTML = ''; // Clear chat box
+                addMessage('bot', `Hello! I'm Dave, your AI assistant. You have ${MAX_GUEST_MESSAGES - guestMessageCount} free messages left. How can I help you today?`);
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            populateChatBoxWithHistoryOrGreeting();
-        });
-
     </script>
-{% endblock %}
+</body>
+</html>
