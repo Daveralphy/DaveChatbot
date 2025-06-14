@@ -19,10 +19,7 @@ Dave Chatbot is a Python-based web application built with Flask, designed to pro
 - DaveChatbot
   - app.py - The main Flask application file, handling routes, API calls, and business logic.
   - templates/ - Contains Jinja2 HTML templates for the web interface (e.g., index.html, profile.html).
-    - index.html - The main chat interface page.
-    - profile.html - User profile display.
-    - settings.html - User settings page.
-    - about.html - Information about the chatbot.
+    - index.html - The main chat interface page, with User profile display, settings page and Information about the chatbot
   - static/ - Stores static assets like CSS stylesheets and JavaScript files.
     - style.css - The primary stylesheet for the application's design.
   - persona.json - Defines the chatbot's initial personality and conversational style.
