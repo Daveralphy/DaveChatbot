@@ -367,20 +367,26 @@ def new_chat():
     logging.info(f"User '{session.get('username', 'Anonymous')}' started a new chat.")
     return redirect(url_for('index'))
 
+# Redirect /profile to the main index page
 @app.route('/profile')
 @login_required
 def profile():
-    return render_template('profile.html', username=session.get('username'))
+    logging.info(f"User '{session.get('username', 'Anonymous')}' attempted to access /profile, redirecting to index.")
+    return redirect(url_for('index'))
 
+# Redirect /settings to the main index page
 @app.route('/settings')
 @login_required
 def settings():
-    return render_template('settings.html')
+    logging.info(f"User '{session.get('username', 'Anonymous')}' attempted to access /settings, redirecting to index.")
+    return redirect(url_for('index'))
 
+# Redirect /about to the main index page
 @app.route('/about')
 @login_required
 def about():
-    return render_template('about.html')
+    logging.info(f"User '{session.get('username', 'Anonymous')}' attempted to access /about, redirecting to index.")
+    return redirect(url_for('index'))
 
 
 # --- LAMBDA HANDLER FOR WSGI APPLICATIONS (REPLACES wsgi-aws-lambda) ---
