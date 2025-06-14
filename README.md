@@ -163,7 +163,7 @@ Create Nginx site configuration:
 ```
 server {
     listen 80;
-    server_name chatwithdave.ddns.net;
+    server_name chatwithdave.ddns.net; # YOUR DOMAIN HERE
 
     # Redirect HTTP to HTTPS
     return 301 https://$server_name$request_uri;
@@ -171,9 +171,9 @@ server {
 
 server {
     listen 443 ssl;
-    server_name chatwithdave.ddns.net;
+    server_name chatwithdave.ddns.net; # YOUR DOMAIN HERE
 
-    # These paths will be created by Certbot later
+    # SSL configuration - these paths are where Certbot saved your certificate
     ssl_certificate /etc/letsencrypt/live/chatwithdave.ddns.net/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/chatwithdave.ddns.net/privkey.pem;
 
@@ -182,14 +182,29 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # Static files location
-    location /static {
-        alias /home/ubuntu/DaveChatbot/static/; # NOTE THE TRAILING SLASH
-        expires 30d;
-        add_header Cache-Control "public, no-transform";
+    location /static/ {
+        alias /home/ubuntu/DaveChatbot/static/;
+        # Cache prevention headers for debugging static files
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
     }
 
-    # Proxy to Gunicorn via Unix socket
+    location = /favicon.ico {
+        alias /home/ubuntu/DaveChatbot/static/favicon.ico;
+        # Cache prevention headers for debugging
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        # Important: No trailing slash on alias for single file
+    }
+
     location / {
+        # Cache prevention headers for dynamic content (Flask)
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+
         proxy_pass http://unix:/home/ubuntu/DaveChatbot/davechatbot.sock:/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
