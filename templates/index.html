@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dave Chatbot - Home</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon"> <!-- ADD THIS LINE -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
     <!-- Link to external style.css -->
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,14 +20,24 @@
         <header class="header">
             <h1>Dave</h1> <!-- Dave text, now left-aligned via CSS -->
             <button id="new-chat-btn" class="new-chat-btn">New Chat</button> <!-- New Chat button -->
-            <button id="menu-btn" class="menu-btn"> <!-- Menu button with hamburger icon -->
-                <div class="hamburger-icon">
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
+            <div class="menu-container"> <!-- New container for menu button and dropdown -->
+                <button id="menu-btn" class="menu-btn"> <!-- Menu button with hamburger icon -->
+                    <div class="hamburger-icon">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                    Menu
+                </button>
+                <!-- Dropdown Menu -->
+                <div id="side-menu" class="side-menu">
+                    <a href="#" id="login-link" class="menu-item"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    <a href="#" id="profile-link" class="menu-item"><i class="fas fa-user-circle"></i> User Profile</a>
+                    <a href="#" id="settings-link" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="#" id="about-link" class="menu-item"><i class="fas fa-info-circle"></i> About Dave</a>
+                    <a href="#" id="menu-logout-link" class="menu-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
-                Menu
-            </button>
+            </div>
         </header>
 
         <main class="content-area">
@@ -65,6 +80,7 @@
                     </div> -->
                 </div>
                 <form id="chat-form" class="chat-input-area">
+                    <button type="button" id="upload-btn" class="btn upload-btn" title="Attach file"><i class="fas fa-paperclip"></i></button> <!-- ADDED LINE -->
                     <input type="text" id="user-input" placeholder="Message Dave..." class="user-input-field" autocomplete="off"> <!-- Added autocomplete="off" -->
                     <button type="submit" class="btn send-btn" title="Send message"><i class="fas fa-paper-plane"></i></button>
                 </form>
@@ -73,19 +89,8 @@
         </main>
     </div>
 
-    <!-- The overlay element is added here -->
+    <!-- The overlay element is now primarily for modals -->
     <div id="overlay" class="overlay"></div>
-
-    <!-- Side Menu -->
-    <div id="side-menu" class="side-menu">
-        <button id="close-side-menu-btn" class="close-menu-btn">&times;</button>
-        <!-- Menu items will be dynamically loaded by JavaScript -->
-        <a href="#" id="login-link" class="menu-item"><i class="fas fa-sign-in-alt"></i> Login</a>
-        <a href="#" id="profile-link" class="menu-item"><i class="fas fa-user-circle"></i> User Profile</a>
-        <a href="#" id="settings-link" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
-        <a href="#" id="about-link" class="menu-item"><i class="fas fa-info-circle"></i> About Dave</a>
-        <a href="#" id="menu-logout-link" class="menu-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
 
     <!-- Modals for Profile, Settings, About, and Login Required -->
 
@@ -177,7 +182,7 @@
                 </select>
             </div>
             <div class="settings-option">
-                <label for="notifications-toggle">Notifications</label>
+                <label for="notifications-toggle" class="theme-label">Notifications</label>
                 <div class="toggle-switch-wrapper">
                     <input type="checkbox" id="notifications-toggle" class="toggle-switch-checkbox" checked title="Enable or disable notifications">
                     <label for="notifications-toggle" class="toggle-switch-label">
@@ -224,8 +229,9 @@
         // --- Common JavaScript Elements and Functions ---
         const newChatBtn = document.getElementById('new-chat-btn'); // New element
         const menuBtn = document.getElementById('menu-btn'); // Changed from hamburgerIcon
+        const menuContainer = document.querySelector('.menu-container'); // New: Reference to the menu container
         const sideMenu = document.getElementById('side-menu');
-        const closeSideMenuBtn = document.getElementById('close-side-menu-btn');
+        const closeSideMenuBtn = document.getElementById('close-side-menu-btn'); // This might be removed if menu is a dropdown
         const menuLogoutLink = document.getElementById('menu-logout-link');
         const overlay = document.getElementById('overlay');
         const body = document.body; // Reference to the body element
@@ -266,6 +272,7 @@
         // Chat message count for guest users
         let guestMessageCount = 0;
         const MAX_GUEST_MESSAGES = 5;
+        const uploadBtn = document.getElementById('upload-btn');
 
 
         function showSection(section) {
@@ -365,7 +372,7 @@
                 if (response.ok && result.logged_in) {
                     // User is logged in
                     updateSideMenu(true);
-                    if (menuBtn) menuBtn.style.display = 'flex'; // Show menu button
+                    // No need to show/hide menuBtn here, it's always visible in header
                     // Populate profile modal fields
                     if (profileDisplayName) profileDisplayName.textContent = result.username || 'N/A';
                     if (profileEmail) profileEmail.textContent = result.email || 'N/A'; // Assuming email is returned
@@ -379,7 +386,7 @@
                 } else {
                     // User is not logged in (guest)
                     updateSideMenu(false);
-                    if (menuBtn) menuBtn.style.display = 'flex'; // Show menu button
+                    // No need to show/hide menuBtn here, it's always visible in header
                     if (window.location.pathname === '/') {
                         showSection('auth');
                     }
@@ -389,7 +396,7 @@
                 console.error('Login Status Check Error:', error);
                 // Fallback for network errors or server issues
                 updateSideMenu(false); // Assume guest
-                if (menuBtn) menuBtn.style.display = 'flex';
+                // No need to show/hide menuBtn here
                 if (window.location.pathname === '/') {
                     showSection('auth');
                 }
@@ -399,7 +406,7 @@
 
         // Function to open any modal
         function openModal(modalElement) {
-            sideMenu.classList.remove('open'); // Close side menu when a modal opens
+            sideMenu.classList.remove('open'); // Close dropdown menu when a modal opens
             overlay.classList.add('visible'); // Ensure overlay is visible
             modalElement.classList.add('open'); // Open the specific modal
             body.classList.add('modal-open'); // Add class to body to indicate modal is open
@@ -418,30 +425,22 @@
             }
         }
 
-        // Event listeners for side menu toggle
-        if (menuBtn) { // Changed from hamburgerIcon
-            menuBtn.addEventListener('click', () => {
-                sideMenu.classList.add('open');
-                overlay.classList.add('visible');
+        // Event listener for dropdown menu toggle
+        if (menuBtn) {
+            menuBtn.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent click from bubbling to document and closing immediately
+                sideMenu.classList.toggle('open');
+                // Don't use overlay for dropdown menu. Overlay is just for modals now.
+                // If modals are open, overlay will already be visible.
             });
         }
 
-        // Event listener for side menu close button
-        if (closeSideMenuBtn) {
-            closeSideMenuBtn.addEventListener('click', () => {
+        // Close dropdown menu when clicking outside
+        document.addEventListener('click', (event) => {
+            if (sideMenu.classList.contains('open') && !menuContainer.contains(event.target)) {
                 sideMenu.classList.remove('open');
-                // Check if any modal is open before hiding overlay
-                if (!profileModal.classList.contains('open') && !settingsModal.classList.contains('open') && !aboutModal.classList.contains('open') && !loginRequiredModal.classList.contains('open')) {
-                    overlay.classList.remove('visible');
-                }
-            });
-        }
-
-        // Event listeners for opening modals from side menu
-        if (loginLink) loginLink.addEventListener('click', (e) => { e.preventDefault(); openModal(loginRequiredModal); }); // New login link
-        if (profileLink) profileLink.addEventListener('click', (e) => { e.preventDefault(); openModal(profileModal); });
-        if (settingsLink) settingsLink.addEventListener('click', (e) => { e.preventDefault(); openModal(settingsModal); });
-        if (aboutLink) aboutLink.addEventListener('click', (e) => { e.preventDefault(); openModal(aboutModal); });
+            }
+        });
 
         // Event listeners for closing modals (via their 'X' button)
         modalCloseBtns.forEach(btn => {
@@ -463,10 +462,7 @@
                 if (aboutModal.classList.contains('open')) { closeModal(aboutModal); closedSomething = true; }
                 if (loginRequiredModal.classList.contains('open')) { closeModal(loginRequiredModal); closedSomething = true; } // Close new modal
 
-                // If no modal was open, and side menu is open, close side menu
-                if (!closedSomething && sideMenu.classList.contains('open')) {
-                    closeSideMenuBtn.click(); // Uses the existing close side menu logic
-                }
+                // The side menu (dropdown) is not closed by the overlay anymore.
             });
         }
 
@@ -572,7 +568,7 @@
                         showSection('chat');
                         // Show header buttons and update side menu for logged-in user
                         if (newChatBtn) newChatBtn.style.display = 'block';
-                        if (menuBtn) menuBtn.style.display = 'flex';
+                        // menuBtn is always visible now as per dropdown design
                         updateSideMenu(true);
                         populateChatBoxWithHistoryOrGreeting();
                         closeModal(loginRequiredModal); // Close the login required modal if open
@@ -671,7 +667,7 @@
                             closeModal(loginRequiredModal);
                             showSection('chat');
                             if (newChatBtn) newChatBtn.style.display = 'block';
-                            if (menuBtn) menuBtn.style.display = 'flex';
+                            // menuBtn is always visible now
                             updateSideMenu(true);
                             populateChatBoxWithHistoryOrGreeting();
                             guestMessageCount = 0; // Reset count on successful login
@@ -833,6 +829,14 @@
                     displayMessage('An error occurred during new chat initiation.', 'error');
                 }
             });
+        // Event listener for the new upload button
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => {
+                // Placeholder for future file upload logic
+                displayMessage('File upload functionality coming soon!', 'info');
+                console.log('Upload button clicked. File upload logic would go here.');
+            });
+        }
         }
 
 
@@ -843,9 +847,8 @@
 
                 if (response.ok && result.logged_in) {
                     showSection('chat');
-                    // Ensure New Chat and Menu buttons are visible and side menu updated
+                    // Ensure New Chat button is visible for logged-in users
                     if (newChatBtn) newChatBtn.style.display = 'block';
-                    if (menuBtn) menuBtn.style.display = 'flex';
                     updateSideMenu(true);
 
                     // Populate profile modal fields
@@ -876,7 +879,6 @@
                     showSection('chat'); // Keep showing chat, but manage message count
                     // Hide New Chat button for guests
                     if (newChatBtn) newChatBtn.style.display = 'none';
-                    if (menuBtn) menuBtn.style.display = 'flex';
                     updateSideMenu(false); // Update menu for guest state
 
                     if (chatBox) chatBox.innerHTML = ''; // Clear chat box
@@ -889,7 +891,6 @@
                 // Fallback to showing chat, but with guest limitations
                 showSection('chat');
                 if (newChatBtn) newChatBtn.style.display = 'none';
-                if (menuBtn) menuBtn.style.display = 'flex';
                 updateSideMenu(false);
                 if (chatBox) chatBox.innerHTML = ''; // Clear chat box
                 addMessage('bot', `Hello! I'm Dave, your AI assistant. You have ${MAX_GUEST_MESSAGES - guestMessageCount} free messages left. How can I help you today?`);

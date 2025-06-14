@@ -61,7 +61,7 @@
     --dark-menu-btn-bg: var(--dark-card-bg);
     --dark-menu-btn-text: var(--dark-text-color);
     --dark-bot-message-bg: #374151; /* Darker grey for bot messages */
-    --dark-bot-message-text: #d8d1d1; /* Changed to black for better contrast in dark mode */
+    --dark-bot-message-text: #fdfdfd; /* Changed to black for better contrast in dark mode */
     --dark-bot-icon-bg: var(--dark-primary-color);
     --dark-bot-icon-color: var(--dark-text-light);
     --dark-user-message-bg: var(--dark-primary-color);
@@ -104,8 +104,8 @@ html.dark-mode {
     --bot-message-text: var(--dark-bot-message-text); /* Use the updated dark mode bot message text */
     --bot-icon-bg: var(--dark-bot-icon-bg);
     --bot-icon-color: var(--dark-bot-icon-color);
-    --user-message-bg: var(--dark-user-message-bg);
-    --user-message-text: var(--dark-user-message-text);
+    --dark-user-message-bg: var(--dark-user-message-bg);
+    --dark-user-message-text: var(--dark-user-message-text);
     --input-bg: var(--dark-input-bg);
     --input-border: var(--dark-input-border);
     --input-text: var(--dark-input-text);
@@ -553,6 +553,28 @@ html, body {
 .send-btn:active {
     transform: translateY(0);
 }
+.upload-btn { /* NEW: Styling for the upload button */
+    background-color: var(--card-bg); /* White background */
+    color: var(--text-color); /* Dark text */
+    border: 1px solid var(--border-color);
+    padding: 0.75rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+}
+
+.upload-btn:hover {
+    background-color: var(--bg-light); /* Lighter on hover */
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
 
 .disclaimer-text {
     font-size: 0.75rem; /* Smaller font size */
@@ -568,8 +590,10 @@ html, body {
     position: fixed;
     top: 0;
     right: -250px;
-    width: 250px;
-    height: 100%;
+    width: auto; /* Changed from 250px to auto to fit content */
+    max-width: 250px; /* Ensure it doesn't get too wide */
+    height: auto; /* Changed from 100% to auto to fit content */
+    min-height: 100vh; /* Keep min-height 100vh to cover full screen when needed, but content determines max height */
     background-color: var(--bg-dark); /* Dark background */
     color: var(--text-light);
     box-shadow: -4px 0 15px var(--shadow-color);
@@ -713,7 +737,6 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--text-light);
     margin: -4rem auto 1rem; /* Pull up to overlap, center */
     font-size: 2rem;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -923,9 +946,10 @@ body.modal-open .app-wrapper {
     }
 
     .side-menu {
-        width: 80%;
+        width: auto; /* Adjusted to auto on mobile too */
         max-width: 250px;
-        height: 100%;
+        height: auto; /* Adjusted to auto on mobile too */
+        min-height: 100vh; /* Keep min-height to ensure it can cover full screen if content grows that tall */
         border-radius: 0;
         padding-top: 60px;
         right: -80%;
